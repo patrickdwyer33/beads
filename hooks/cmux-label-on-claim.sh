@@ -33,6 +33,7 @@ id="$(printf '%s' "$cmd" | awk '{for(i=1;i<=NF;i++) if($i=="update"){for(j=i+1;j
 DEV="${DEV_ROOT:-$HOME/dev}"
 dbargs=()
 # Discover beads repos, longest name first so the longest matching prefix wins.
+# NOTE: relies on the convention that repo dir names have no whitespace.
 for r in $(for d in "$DEV"/*/.beads; do
     [ -d "$d" ] || continue
     basename "$(dirname "$d")"
