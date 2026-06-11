@@ -30,9 +30,15 @@ id="$(printf '%s' "$cmd" | awk '{for(i=1;i<=NF;i++) if($i=="update"){for(j=i+1;j
 
 # Resolve the bead's repo from its id prefix so this works regardless of cwd
 # (a claim may be run from /dev, a worktree, or the repo itself).
+DEV="${DEV_ROOT:-$HOME/dev}"
 dbargs=()
-for r in dwyerlab-remix dwyerlab-api astrid-browser astrid-macos astrid-ios devops; do
-  case "$id" in "$r"-*) db="$HOME/dev/$r/.beads/beads.db"; [ -f "$db" ] && dbargs=(--db "$db"); break;; esac
+# Discover beads repos, longest name first so the longest matching prefix wins.
+# NOTE: relies on the convention that repo dir names have no whitespace.
+for r in $(for d in "$DEV"/*/.beads; do
+    [ -d "$d" ] || continue
+    basename "$(dirname "$d")"
+  done | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2-); do
+  case "$id" in "$r"-*) db="$DEV/$r/.beads/beads.db"; [ -f "$db" ] && dbargs=(--db "$db"); break;; esac
 done
 
 json="$(br show "$id" "${dbargs[@]}" --json 2>/dev/null)"
@@ -43,15 +49,13 @@ repo="$(printf '%s' "$json" | jq -r '.[0].source_repo // empty' 2>/dev/null)"
 # Keep the narrow left column readable
 short="$(printf '%s' "$title" | cut -c1-60)"
 
-case "$repo" in
-  *remix*)   color=Blue ;;
-  *devops*)  color=Orange ;;
-  *ios*)     color=Purple ;;
-  *browser*) color=Teal ;;
-  *macos*)   color=Indigo ;;
-  *api*)     color=Green ;;
-  *)         color="" ;;
-esac
+palette=(Blue Green Orange Purple Teal Indigo Magenta Olive)
+if [ -n "$repo" ]; then
+  idx=$(( $(printf '%s' "$repo" | cksum | cut -d' ' -f1) % ${#palette[@]} + 1 ))
+  color="${palette[$idx]}"
+else
+  color=""
+fi
 
 if [ "$DRYRUN" = "1" ]; then
   echo "[cmux-label] id=$id repo=$repo color=${color:-none} title=\"$short\""

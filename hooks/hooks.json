@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/beads-worktree-link.sh\"" },
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/beads-digest.sh\"" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "if": "Bash(bd update *)", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/cmux-label-on-claim.sh\"" },
+          { "type": "command", "if": "Bash(br update *)", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/cmux-label-on-claim.sh\"" }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-create.sh\"" } ] }
+    ],
+    "WorktreeRemove": [
+      { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-remove.sh\"" } ] }
+    ]
+  }
+}

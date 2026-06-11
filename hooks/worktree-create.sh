@@ -44,16 +44,31 @@ source_path=$(printf '%s' "$input" | jq -r '.source_path // .cwd // empty' 2>/de
 
 [ -n "$name" ] || fail "no worktree name in payload (need \"<repo>/<branch>\")"
 
-# Require the repo-prefixed form so we know which repo to fork.
+# Repo selection: "<repo>/<branch>" picks $DEV_ROOT/<repo>. A BARE name (no "/")
+# is valid from inside a repo session: infer the repo from the event's
+# source_path and treat the whole name as the branch. Fail only when a bare
+# name arrives with no git-repo context to infer from (e.g. from ~/dev).
 case "$name" in
-  */*) ;;
-  *) fail "name \"$name\" has no repo prefix. Use \"<repo>/<branch>\", e.g. \"dwyerlab-api/$name\".";;
+  */*)
+    repo=${name%%/*}      # first segment
+    branch=${name#*/}     # everything after the first slash (slashes allowed in branch refs)
+    repo_dir="$DEV_ROOT/$repo"
+    ;;
+  *)
+    # Resolve the MAIN checkout even when source_path is itself a linked
+    # worktree: --git-common-dir points at the main repo's .git from anywhere
+    # (mirrors beads-worktree-link.sh's absolutize pattern).
+    common=$(git -C "${source_path:-.}" rev-parse --git-common-dir 2>/dev/null) \
+      || fail "bare name \"$name\" needs a repo context. From ~/dev use \"<repo>/$name\"."
+    case "$common" in /*) ;; *) common="${source_path:-.}/$common" ;; esac
+    common=$(cd "$common" 2>/dev/null && pwd) \
+      || fail "cannot resolve the owning repo for bare name \"$name\""
+    src_root=$(dirname "$common")
+    repo=$(basename "$src_root")
+    branch="$name"
+    repo_dir="$src_root"
+    ;;
 esac
-
-repo=${name%%/*}          # first segment
-branch=${name#*/}         # everything after the first slash (slashes allowed in branch refs)
-
-repo_dir="$DEV_ROOT/$repo"
 [ -d "$repo_dir/.git" ] || git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1 \
   || fail "\"$repo\" is not a git repo under $DEV_ROOT. Valid repos: $(ls -d "$DEV_ROOT"/*/.git 2>/dev/null | sed 's@/.git@@;s@.*/@@' | tr '\n' ' ')"
 
@@ -69,10 +84,23 @@ done; }
 [ -n "$def" ] || def="HEAD"
 
 base=""
-if git -C "$repo_dir" rev-parse --verify --quiet "origin/$def" >/dev/null 2>&1; then
-  base="origin/$def"
-elif git -C "$repo_dir" rev-parse --verify --quiet "$def" >/dev/null 2>&1; then
-  base="$def"
+# Branch policy (beads-inited repos ONLY): feature work integrates into dev, so
+# fork worktrees from the freshest dev when the repo has one. Non-beads repos
+# keep the upstream behavior (default branch) — several ~/dev repos have
+# unrelated/stale `dev` branches that must never become silent worktree bases.
+if [ -d "$repo_dir/.beads" ]; then
+  if git -C "$repo_dir" rev-parse --verify --quiet "origin/dev" >/dev/null 2>&1; then
+    base="origin/dev"
+  elif git -C "$repo_dir" rev-parse --verify --quiet "dev" >/dev/null 2>&1; then
+    base="dev"
+  fi
+fi
+if [ -z "$base" ]; then
+  if git -C "$repo_dir" rev-parse --verify --quiet "origin/$def" >/dev/null 2>&1; then
+    base="origin/$def"
+  elif git -C "$repo_dir" rev-parse --verify --quiet "$def" >/dev/null 2>&1; then
+    base="$def"
+  fi
 fi
 # (No auto-fetch: branches from local origin/<default> tip to stay fast and
 #  avoid network/auth hangs in a hook. Fetch in-session if you need newer.)
