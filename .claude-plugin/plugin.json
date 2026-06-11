@@ -1,0 +1,18 @@
+{
+  "name": "beads-orc",
+  "description": "Orchestrates beads (br) issue tracking across ~/dev repos: per-repo backlogs, atomic claims, worktree coordination, cmux labeling. Per-repo opt-in via beads-orc:init.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Patrick Dwyer",
+    "email": "patrick@patrickdwyer.com"
+  },
+  "homepage": "https://github.com/patrickdwyer33/beads",
+  "repository": "https://github.com/patrickdwyer33/beads",
+  "license": "MIT",
+  "keywords": [
+    "beads",
+    "issue-tracking",
+    "workflow",
+    "orchestration"
+  ]
+}

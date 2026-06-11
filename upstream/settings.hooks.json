@@ -1,0 +1,91 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/review-gate.sh\"",
+            "if": "Bash(git*)"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/cmux-label-on-claim.sh\"",
+            "if": "Bash(br update *)"
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/cmux-label-on-claim.sh\"",
+            "if": "Bash(bd update *)"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/beads-worktree-link.sh\""
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/worktree-create.sh\""
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/worktree-remove.sh\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/notify-ntfy.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/notify-ntfy.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$HOME/.claude/hooks/beads-sync.sh\" --from-session-end"
+          }
+        ]
+      }
+    ]
+  }
+}
