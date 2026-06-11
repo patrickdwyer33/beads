@@ -1,34 +1,35 @@
 #!/bin/sh
-# bd — beads dispatch: a transparent wrapper around `br` that fixes cross-repo
-# double-work (see dwyerlab-api-a8v1 root-cause). Two behaviors, both opt-out:
+# bd — beads dispatch: a transparent wrapper around `br`.
 #
-#  (A) ROUTING. A fully-qualified bead ID ("<repo>-...") is routed to THAT repo's
-#      home DB via --db, so `bd update dwyerlab-api-lmk2 --claim` works from ANY
-#      cwd — a different repo's worktree, or /dev. Plain `br` only resolves the
-#      cwd's .beads DB, so a bead tracked in repo A but worked in repo B was
-#      discoverable (the cross-repo SessionStart digest) yet UNclaimable from B's
-#      worktree (`br show <A-id>` → "Issue not found") and from /dev ("not
-#      initialized"). That gap let two sessions work the same bead unclaimed.
+#  (A) ROUTING. A fully-qualified bead ID ("<repo>-...") is routed to THAT
+#      repo's home DB via --db, so `bd update taher-core-scope-8cda --claim`
+#      works from ANY cwd (another repo, a worktree, or ~/dev). Plain `br` only resolves
+#      the cwd's .beads DB. Repos are DISCOVERED: every dir under $DEV_ROOT
+#      (default ~/dev) that contains .beads/, matched longest-prefix-first.
+#      Convention: repo dir name == bead id prefix.
 #
 #  (B) ACTOR. Mutating verbs get a session-distinct --actor derived from the
-#      current git branch (each parallel session lives on its own worktree/branch),
-#      so two concurrent claims by the same human are distinguishable and the
-#      digest's 🔒 in-flight list shows another session's claim under a different
-#      name instead of the indistinguishable shared "joedwy".
+#      current git branch (parallel sessions live on their own branches), so
+#      concurrent claims by the same human are distinguishable.
 #
-# Transparent superset of br: an explicit --db or --actor is always honored;
-# with no foreign ID and no mutating verb it's a pass-through. Use `bd` anywhere
-# you'd use `br`. The real binary is invoked by absolute path (no PATH games).
+# Transparent superset of br: explicit --db/--actor are honored; with no
+# foreign ID and no mutating verb it's a pass-through.
+# BD_BR_OVERRIDE points at an alternative br binary (used by tests).
 
 set -u
 
-BR="$HOME/.local/bin/br"
+BR="${BD_BR_OVERRIDE:-}"
+[ -n "$BR" ] && [ -x "$BR" ] || BR="$HOME/.local/bin/br"
 [ -x "$BR" ] || BR="$(command -v br 2>/dev/null || echo br)"
 
-# Repo prefixes == repo dir names == issue_prefix (verified 1:1, longest-match safe
-# since dwyerlab-api / dwyerlab-remix only collide on the shared "dwyerlab-" stem,
-# and we match the FULL "<prefix>-").
-REPOS="dwyerlab-api dwyerlab-remix astrid-macos astrid-browser astrid-ios devops"
+DEV="${DEV_ROOT:-$HOME/dev}"
+
+# Discover beads repos: dirs under $DEV with a .beads dir, longest name first
+# (so taher-core-extra wins over taher-core for id "taher-core-extra-1").
+REPOS=$(for d in "$DEV"/*/.beads; do
+  [ -d "$d" ] || continue
+  basename "$(dirname "$d")"
+done | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2-)
 
 have_db=0
 have_actor=0
@@ -39,7 +40,6 @@ for a in "$@"; do
     --actor|--actor=*) have_actor=1 ;;
   esac
 done
-# First non-flag token is the subcommand.
 for a in "$@"; do
   case "$a" in -*) ;; *) verb="$a"; break ;; esac
 done
@@ -51,7 +51,7 @@ if [ "$have_db" -eq 0 ]; then
     for r in $REPOS; do
       case "$a" in
         "$r"-*)
-          cand="$HOME/dev/$r/.beads/beads.db"
+          cand="$DEV/$r/.beads/beads.db"
           [ -f "$cand" ] && db="$cand"
           break
           ;;
@@ -68,11 +68,9 @@ if [ "$have_actor" -eq 0 ]; then
     update|close|create|comment|comments|delete|dep|deps)
       actor="${BEADS_ACTOR:-}"
       [ -z "$actor" ] && actor="$(git branch --show-current 2>/dev/null || true)"
-      [ -z "$actor" ] && actor="${USER:-joedwy}"
+      [ -z "$actor" ] && actor="${USER:-agent}"
       ;;
   esac
 fi
 
-# Inject resolved flags before the subcommand (br accepts them as global flags).
-# ${x:+--flag} ${x:+"$x"} expands to nothing when x is empty, keeping pass-through clean.
 exec "$BR" ${db:+--db} ${db:+"$db"} ${actor:+--actor} ${actor:+"$actor"} "$@"
