@@ -55,8 +55,15 @@ case "$name" in
     repo_dir="$DEV_ROOT/$repo"
     ;;
   *)
-    src_root=$(git -C "${source_path:-.}" rev-parse --show-toplevel 2>/dev/null) \
+    # Resolve the MAIN checkout even when source_path is itself a linked
+    # worktree: --git-common-dir points at the main repo's .git from anywhere
+    # (mirrors beads-worktree-link.sh's absolutize pattern).
+    common=$(git -C "${source_path:-.}" rev-parse --git-common-dir 2>/dev/null) \
       || fail "bare name \"$name\" needs a repo context. From ~/dev use \"<repo>/$name\"."
+    case "$common" in /*) ;; *) common="${source_path:-.}/$common" ;; esac
+    common=$(cd "$common" 2>/dev/null && pwd) \
+      || fail "cannot resolve the owning repo for bare name \"$name\""
+    src_root=$(dirname "$common")
     repo=$(basename "$src_root")
     branch="$name"
     repo_dir="$src_root"
