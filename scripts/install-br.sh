@@ -70,5 +70,6 @@ tar -xzf "$tmp/$asset" -C "$tmp" || { say "ERROR: extract failed"; rm -rf "$tmp"
 br_bin=$(find "$tmp" -type f -name br | head -1)
 [ -n "$br_bin" ] || { say "ERROR: 'br' not found in $asset"; rm -rf "$tmp"; exit 1; }
 mkdir -p "$BIN"
-cp "$br_bin" "$BIN/br" && chmod +x "$BIN/br" && note "installed  $BIN/br ($BR_VERSION)"
+cp "$br_bin" "$BIN/br" && chmod +x "$BIN/br" && note "installed  $BIN/br ($BR_VERSION)" \
+  || { say "ERROR: install to $BIN failed"; rm -rf "$tmp"; exit 1; }
 rm -rf "$tmp"
