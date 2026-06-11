@@ -77,7 +77,7 @@ fi
 actor=""
 if [ "$have_actor" -eq 0 ]; then
   case "$verb" in
-    update|close|create|comment|comments|delete|dep|deps)
+    update|close|create|comment|comments|delete|dep|deps|q|reopen)
       actor="${BEADS_ACTOR:-}"
       [ -z "$actor" ] && actor="$(git branch --show-current 2>/dev/null || true)"
       [ -z "$actor" ] && actor="${USER:-agent}"

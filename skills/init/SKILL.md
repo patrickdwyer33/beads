@@ -10,7 +10,9 @@ DIRECTORY NAME becomes the bead id prefix — confirm with the user if the name
 looks wrong (renaming later breaks routing).
 
 1. Verify preconditions: `git rev-parse --show-toplevel` succeeds, and the
-   repo root's basename contains no spaces. Check `command -v br` — if
+   repo root's basename contains no spaces and is all-lowercase (br
+   lowercases id prefixes at init — an uppercase dir name silently breaks
+   prefix routing). Check `command -v br` — if
    missing, run the beads-orc:setup skill first.
 
 2. Initialize beads (check `br init --help` for the prefix flag name first):
@@ -45,10 +47,12 @@ looks wrong (renaming later breaks routing).
    - Work each bead on a feature branch in a worktree (EnterWorktree).
    - **Branch policy: push feature work to `dev` (review-gated). `main` is
      prod — agents NEVER push to main. A human promotes dev → main.**
-   - Close when done: `bd update <id> --status closed`.
+   - Close when done: `bd close <id> --reason "<done note>"`.
    ```
 
-6. Commit the opt-in: `git add .beads/issues.jsonl .beads/.gitignore CLAUDE.md`
+6. Commit the opt-in ON THE `dev` BRANCH (switch first: `git checkout dev` —
+   committing this to main would violate the policy you just documented):
+   `git add .beads/issues.jsonl .beads/.gitignore CLAUDE.md`
    then commit with message `chore: init beads-orc issue tracking`.
    (If `br init` created other tracked files under .beads/, add those too —
    never add `*.db`.)

@@ -5,7 +5,7 @@ description: Use when beginning work on a bead — claims it atomically and step
 
 # Start a bead
 
-1. Pick ONLY from `bd ready` (scheduler-ranked, unblocked, unclaimed) — or
+1. Pick ONLY from `bd ready` (open, unblocked, unclaimed) — or
    use the id the user gave. Never pick from 🔒 in-flight.
 2. CLAIM FIRST, before any other work: `bd update <id> --claim`
    (atomic: sets assignee + status=in_progress, hides it from other sessions).
