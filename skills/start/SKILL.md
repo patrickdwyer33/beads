@@ -17,5 +17,7 @@ description: Use when beginning work on a bead — claims it atomically and step
    `EnterWorktree(name: "<short-slug>")` from inside the repo.
 5. Do the work on that branch. Branch policy: this branch will be pushed to
    `dev` (review-gated) when done — `main` is prod; NEVER push main.
-6. If you stop without finishing, say so and leave the claim in place (or
-   release with `bd update <id> --status open` if abandoning).
+6. If you stop without finishing, say so and leave the claim in place. If
+   ABANDONING, release fully: `bd update <id> --status open --assignee ""`
+   — clearing the assignee matters; br refuses to re-claim a bead whose
+   assignee is still set, so `--status open` alone leaves it stuck.
