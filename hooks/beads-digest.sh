@@ -14,7 +14,6 @@
 
 export PATH="$HOME/.local/bin:$PATH"
 export NO_COLOR=1
-command -v br >/dev/null 2>&1 || exit 0
 
 DEV="${DEV_ROOT:-$HOME/dev}"
 READY_N=5
@@ -40,6 +39,14 @@ REPOS=$(for d in "$DEV"/*/.beads; do
   basename "$(dirname "$d")"
 done)
 [ -n "$REPOS" ] || exit 0
+
+# Beads repos exist but the toolchain is missing → loud setup banner instead of
+# silence (plugins can't run install-time scripts; this is the discovery path).
+if ! command -v br >/dev/null 2>&1 || ! command -v bd >/dev/null 2>&1; then
+  echo '⛔ beads-orc: beads-inited repos exist under '"$DEV"' but `br`/`bd` are not on PATH.'
+  echo '   AGENT: run the beads-orc:setup skill (installs the pinned br binary and links bd) BEFORE any beads work.'
+  exit 0
+fi
 
 echo '## Beads — cross-repo backlog digest (beads-orc)'
 echo 'CLAIM BEFORE YOU WORK with `bd`, NOT `br`: `bd update <id> --claim` is atomic (assignee + status=in_progress) and drops the bead from every other agent'\''s ready list. `bd` ROUTES a fully-qualified id (e.g. `taher-core-scope-8cda`) to its home repo'\''s DB from ANY cwd and stamps a SESSION-DISTINCT actor (your branch, or your username outside a repo), so a parallel session'\''s claim is visibly not yours. Bare `br` only sees the cwd'\''s DB. ▸ ready = safe to claim. 🔒 in-flight = already claimed (assignee shown) — do NOT pick.'
