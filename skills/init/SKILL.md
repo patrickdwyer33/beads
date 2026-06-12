@@ -24,7 +24,7 @@ looks wrong (renaming later breaks routing).
 3. Ensure `.beads/.gitignore` keeps live-DB artifacts out of git:
 
    ```bash
-   printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' > .beads/.gitignore
+   printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' '.br_history/' > .beads/.gitignore
    ```
 
 4. Ensure the `dev` branch exists (the integration branch for the branch

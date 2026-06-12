@@ -1,7 +1,7 @@
 {
   "name": "beads-orc",
   "description": "Orchestrates beads (br) issue tracking across ~/dev repos: per-repo backlogs, atomic claims, worktree coordination, cmux labeling. Per-repo opt-in via beads-orc:init.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Patrick Dwyer",
     "email": "patrick@patrickdwyer.com"
