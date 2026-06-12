@@ -8,10 +8,11 @@
 #      (default ~/dev) that contains .beads/, matched longest-prefix-first.
 #      Convention: repo dir name == bead id prefix.
 #
-#  (B) ACTOR. Mutating verbs get a session-distinct --actor derived from the
-#      current git branch (parallel sessions live on their own branches), so
-#      concurrent claims by the same human are distinguishable.
-#      BEADS_ACTOR (env) takes precedence over the branch-derived actor.
+#  (B) ACTOR. Mutating verbs get a session-distinct, USER-ATTRIBUTED --actor:
+#      "<branch>-<username>" inside a repo (parallel sessions live on their own
+#      branches, and the suffix says WHOSE session it is — the plugin is
+#      multi-user), or just "<username>" outside a repo.
+#      BEADS_ACTOR (env) takes precedence over the derived actor.
 #
 # Transparent superset of br: explicit --db/--actor are honored; with no
 # foreign ID and no mutating verb it's a pass-through.
@@ -79,8 +80,11 @@ if [ "$have_actor" -eq 0 ]; then
   case "$verb" in
     update|close|create|comment|comments|delete|dep|deps|q|reopen)
       actor="${BEADS_ACTOR:-}"
-      [ -z "$actor" ] && actor="$(git branch --show-current 2>/dev/null || true)"
-      [ -z "$actor" ] && actor="${USER:-agent}"
+      if [ -z "$actor" ]; then
+        _branch="$(git branch --show-current 2>/dev/null || true)"
+        _user="${USER:-agent}"
+        if [ -n "$_branch" ]; then actor="$_branch-$_user"; else actor="$_user"; fi
+      fi
       ;;
   esac
 fi
