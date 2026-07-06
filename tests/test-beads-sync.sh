@@ -192,5 +192,41 @@ if [ "$(origin_dev_sha)" != "$before" ] && origin_ledger | grep -q "fifth bead";
   ok "session-end gate: dev cwd synced (quiet)"
 else bad "session-end gate: dev cwd synced (quiet)" "$out"; fi
 
+# H. two-level discovery: repo at $DEV_ROOT/group/nested (one group level
+# down) — same fixture recipe as proj, but nested under a group dir. No-arg
+# discovery must reach it via the "$DEV"/*/*/.beads glob; a named arg
+# ("nested") must resolve it via the group-level fallback.
+git init -q --bare "$T/origin-nested.git"
+mkdir -p "$DEV_ROOT/group"
+git -c init.defaultBranch=main init -q "$DEV_ROOT/group/nested"
+(
+  cd "$DEV_ROOT/group/nested" || exit 1
+  git config user.email t@t; git config user.name t
+  printf 'hi\n' > README.md && git add -A && git commit -qm init
+  "$REAL_BR" init --prefix nested >/dev/null 2>&1
+  printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' '.br_history/' > .beads/.gitignore
+  "$REAL_BR" create "nested bead" --type task -p 2 >/dev/null 2>&1
+  "$REAL_BR" sync --flush-only >/dev/null 2>&1
+  git add .beads && git commit -qm "chore: init beads"
+  git branch dev
+  git remote add origin "$T/origin-nested.git"
+  git push -q origin main dev
+)
+NESTED="$DEV_ROOT/group/nested"
+[ -f "$NESTED/.beads/beads.db" ] || { echo "PRECONDITION FAIL: br init did not create nested .beads/beads.db"; exit 1; }
+nested_origin_ledger() { git -C "$T/origin-nested.git" show "dev:.beads/issues.jsonl" 2>/dev/null; }
+NID1=$(head -1 "$NESTED/.beads/issues.jsonl" | jq -r '.id')
+
+reset_brlog
+out=$(sh "$SYNC" 2>&1)
+if printf '%s' "$out" | grep -q "nested: in sync" && nested_origin_ledger | grep -q "$NID1"; then
+  ok "two-level discovery: no-arg sync reaches group/nested"
+else bad "two-level discovery: no-arg sync reaches group/nested" "$out"; fi
+
+out=$(sh "$SYNC" nested 2>&1)
+if printf '%s' "$out" | grep -q "in sync"; then
+  ok "named-arg group fallback resolves 'nested' to group/nested"
+else bad "named-arg group fallback resolves 'nested' to group/nested" "$out"; fi
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

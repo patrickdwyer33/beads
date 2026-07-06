@@ -30,8 +30,10 @@
 #
 # USAGE:
 #   beads-sync.sh [--dry-run] [--quiet] [--from-session-end] [repo ...]
-#     repo: a name under $DEV_ROOT (default ~/dev) or an absolute path.
-#     no repos → every dir under $DEV_ROOT containing .beads/.
+#     repo: a name under $DEV_ROOT (default ~/dev), one group level down
+#           ($DEV_ROOT/<group>/<repo>), or an absolute path.
+#     no repos → every dir under $DEV_ROOT (or one group level down)
+#           containing .beads/.
 #   --dry-run: read-only. Fetches + reports what WOULD change; writes
 #              nothing, pushes nothing, touches no DB.
 #   --from-session-end: SessionEnd hook mode — reads the event JSON on
@@ -94,10 +96,12 @@ if [ "$SESSION_END" -eq 1 ]; then
   esac
 fi
 
-# Discover beads-inited repos when none were named.
-[ -n "$REPOS" ] || REPOS=$(for d in "$DEV"/*/.beads; do
+# Discover beads-inited repos when none were named (dirs under $DEV, or one
+# group level down at $DEV/<group>/<repo>). Emits PATHS, not names — they hit
+# the "/*" absolute branch of the main loop below.
+[ -n "$REPOS" ] || REPOS=$(for d in "$DEV"/*/.beads "$DEV"/*/*/.beads; do
   [ -d "$d" ] || continue
-  basename "$(dirname "$d")"
+  printf '%s\n' "${d%/.beads}"
 done)
 [ -n "$REPOS" ] || exit 0
 
@@ -329,7 +333,13 @@ push_beads() {
 }
 
 for r in $REPOS; do
-  case "$r" in /*) p="$r" ;; *) p="$DEV/$r" ;; esac
+  case "$r" in
+    /*) p="$r" ;;
+    *)  p="$DEV/$r"
+        if [ ! -d "$p" ]; then
+          for g in "$DEV"/*/"$r"; do [ -d "$g" ] && { p="$g"; break; }; done
+        fi ;;
+  esac
   [ -d "$p" ] || { say "[skip] $r (not found at $p)"; continue; }
   sync_one "$p"
 done

@@ -53,6 +53,12 @@ case "$name" in
     repo=${name%%/*}      # first segment
     branch=${name#*/}     # everything after the first slash (slashes allowed in branch refs)
     repo_dir="$DEV_ROOT/$repo"
+    # One optional group level: $DEV_ROOT/<group>/<repo>. The worktree name
+    # convention stays "<repo-basename>/<branch>" either way — never
+    # "<group>/<repo>/<branch>".
+    if [ ! -d "$repo_dir" ]; then
+      for g in "$DEV_ROOT"/*/"$repo"; do [ -d "$g" ] && { repo_dir="$g"; break; }; done
+    fi
     ;;
   *)
     # Resolve the MAIN checkout even when source_path is itself a linked

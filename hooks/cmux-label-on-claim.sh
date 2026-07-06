@@ -32,13 +32,15 @@ id="$(printf '%s' "$cmd" | awk '{for(i=1;i<=NF;i++) if($i=="update"){for(j=i+1;j
 # (a claim may be run from /dev, a worktree, or the repo itself).
 DEV="${DEV_ROOT:-$HOME/dev}"
 dbargs=()
-# Discover beads repos, longest name first so the longest matching prefix wins.
-# NOTE: relies on the convention that repo dir names have no whitespace.
-for r in $(for d in "$DEV"/*/.beads; do
+# Discover beads repos (under $DEV, or one group level down at
+# $DEV/<group>/<repo>), longest BASENAME first so the longest matching
+# prefix wins. NOTE: relies on the convention that repo dir names have no
+# whitespace, and that basenames are unique across groups.
+for p in $(for d in "$DEV"/*/.beads "$DEV"/*/*/.beads; do
     [ -d "$d" ] || continue
-    basename "$(dirname "$d")"
-  done | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2-); do
-  case "$id" in "$r"-*) db="$DEV/$r/.beads/beads.db"; [ -f "$db" ] && dbargs=(--db "$db"); break;; esac
+    printf '%s\n' "${d%/.beads}"
+  done | awk -F/ '{ print length($NF), $0 }' | sort -rn | cut -d' ' -f2-); do
+  case "$id" in "$(basename "$p")"-*) db="$p/.beads/beads.db"; [ -f "$db" ] && dbargs=(--db "$db"); break;; esac
 done
 
 json="$(br show "$id" "${dbargs[@]}" --json 2>/dev/null)"
