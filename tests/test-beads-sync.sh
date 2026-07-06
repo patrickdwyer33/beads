@@ -16,7 +16,11 @@ bad() { FAIL=$((FAIL+1)); printf 'FAIL %s\n     got: %s\n' "$1" "$2"; }
 command -v br >/dev/null 2>&1 || { echo "SKIP-ALL: br not installed"; exit 1; }
 REAL_BR="$(command -v br)"
 
-T=$(mktemp -d) || exit 1
+# Canonical (physical) sandbox root: macOS mktemp returns /var/folders/…,
+# a symlink to /private/var — br's path-safety checks false-reject when
+# logical and physical path forms mix (same quirk the sync script works
+# around by running its merge with cwd in the repo).
+T=$(cd "$(mktemp -d)" && pwd -P) || exit 1
 trap 'rm -rf "$T"' EXIT INT TERM
 
 # br shim: log argv, delegate to the real binary.
