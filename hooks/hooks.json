@@ -17,6 +17,13 @@
         ]
       }
     ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/beads-sync.sh\" --from-session-end", "timeout": 120 }
+        ]
+      }
+    ],
     "WorktreeCreate": [
       { "hooks": [ { "type": "command", "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-create.sh\"" } ] }
     ],

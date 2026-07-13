@@ -6,16 +6,16 @@ description: Use when a bead's implementation is complete and committed, to clos
 # Finish a bead
 
 1. Verify the work is committed on the feature branch (clean `git status`).
-2. Push the feature branch and integrate into `dev` per the branch policy:
-   merge/push to `dev` only. The review gate (when installed) will require a
-   fresh review before the dev push lands — follow its instructions.
+2. REVIEW BEFORE YOU PUSH (documented workflow — there is no enforcement
+   hook; the discipline is yours): see exactly what will land with
+   `git diff origin/dev...HEAD`, spawn a FRESH independent reviewer (Agent
+   tool or /code-review) on it, fix findings, THEN merge/push to `dev` only.
    **NEVER push `main` — a human promotes dev → main.**
 3. Close the bead with a closing reason (br REFUSES `--status closed` via
    update — close is its own verb):
    `bd close <id> --reason "<what landed, where>"`
    and add context if useful: `bd comment add <id> "<note>"`.
-4. The git-tracked ledger (.beads/issues.jsonl) auto-flushes on mutation —
-   into the repo's MAIN checkout (a worktree's .beads is just a redirect).
-   Until automated sync (plan 2) is installed, commit it from the main
-   checkout on `dev` with message `chore(beads): update ledger` if changed.
+4. The ledger (.beads/issues.jsonl) syncs to origin/dev AUTOMATICALLY at
+   session end — no manual ledger commit needed. To publish immediately:
+   `sh "$CLAUDE_PLUGIN_ROOT/hooks/beads-sync.sh" <repo> 2>/dev/null || sh ~/dev/beads/hooks/beads-sync.sh <repo>`.
 5. Exit the worktree (ExitWorktree) and report what closed.

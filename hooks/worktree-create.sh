@@ -53,6 +53,12 @@ case "$name" in
     repo=${name%%/*}      # first segment
     branch=${name#*/}     # everything after the first slash (slashes allowed in branch refs)
     repo_dir="$DEV_ROOT/$repo"
+    # One optional group level: $DEV_ROOT/<group>/<repo>. The worktree name
+    # convention stays "<repo-basename>/<branch>" either way — never
+    # "<group>/<repo>/<branch>".
+    if [ ! -d "$repo_dir" ]; then
+      for g in "$DEV_ROOT"/*/"$repo"; do [ -d "$g" ] && { repo_dir="$g"; break; }; done
+    fi
     ;;
   *)
     # Resolve the MAIN checkout even when source_path is itself a linked
@@ -70,7 +76,7 @@ case "$name" in
     ;;
 esac
 [ -d "$repo_dir/.git" ] || git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1 \
-  || fail "\"$repo\" is not a git repo under $DEV_ROOT. Valid repos: $(ls -d "$DEV_ROOT"/*/.git 2>/dev/null | sed 's@/.git@@;s@.*/@@' | tr '\n' ' ')"
+  || fail "\"$repo\" is not a git repo under $DEV_ROOT. Valid repos: $(ls -d "$DEV_ROOT"/*/.git "$DEV_ROOT"/*/*/.git 2>/dev/null | sed 's@/.git@@;s@.*/@@' | tr '\n' ' ')"
 
 # Directory name: flatten any slashes in the branch portion so we get one dir.
 dir_name=$(printf '%s' "$branch" | tr '/' '-')
@@ -133,7 +139,7 @@ canonical="$repo_dir/.beads"
 if [ -d "$canonical" ]; then
   mkdir -p "$wt_path/.beads" 2>/dev/null && {
     [ -f "$wt_path/.beads/.gitignore" ] || \
-      printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' '.br_history/' > "$wt_path/.beads/.gitignore" 2>/dev/null
+      printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' 'beads.base.jsonl' '.br_history/' > "$wt_path/.beads/.gitignore" 2>/dev/null
     printf '%s\n' "$canonical" > "$wt_path/.beads/redirect" 2>/dev/null
   }
 fi

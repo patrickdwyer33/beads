@@ -38,7 +38,7 @@ mkdir -p .beads 2>/dev/null || exit 0
 # Keep worktree-local beads artifacts (db, redirect, locks) out of git in case
 # this branch doesn't track .beads/.gitignore yet.
 if [ ! -f .beads/.gitignore ]; then
-  printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' '.br_history/' > .beads/.gitignore 2>/dev/null
+  printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' 'beads.base.jsonl' '.br_history/' > .beads/.gitignore 2>/dev/null
 fi
 
 # Write/refresh the redirect only when it's missing or stale.
