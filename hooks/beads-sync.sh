@@ -70,6 +70,13 @@ BR="${BD_BR_OVERRIDE:-}"
 [ -n "$BR" ] && [ -x "$BR" ] || BR="br"
 
 LOG="$HOME/.claude/beads-orc-sync.log"
+# Machine-local marker dir: records a foreign-path `br sync --merge` failure
+# (e.g. a SQLite lock from a concurrent session) so the DB merge is retried
+# on every subsequent run instead of getting silently wedged behind the
+# ledger once the push makes local == origin (FOREIGN=0 forever after).
+# Deliberately NOT in the repo — this is machine-local state for a
+# machine-local condition.
+RETRY_DIR="$HOME/.claude/beads-orc-retry"
 # Cheap rotation: keep the tail once the log passes ~200 KB.
 if [ -f "$LOG" ]; then
   _sz=$(wc -c < "$LOG" 2>/dev/null | tr -d ' ')
@@ -188,6 +195,23 @@ sync_one() {
 
   db="$repo/.beads/beads.db"
   local_jsonl="$repo/.beads/issues.jsonl"
+  marker="$RETRY_DIR/$name"
+
+  # Retry hook: heal a DB left behind by a previous WARN-path merge failure
+  # (see the foreign-path block below) before anything else runs. Placement
+  # matters: a healed DB then flushes normally below.
+  if [ -f "$marker" ] && [ "$DRY" -eq 0 ] && [ -f "$db" ] && [ -f "$local_jsonl" ]; then
+    if ( cd "$repo" && "$BR" sync --merge --force >/dev/null 2>&1 ); then
+      rm -f "$marker"
+      say "[heal] $name: retried DB merge from previous failure"
+      logline "HEAL $name"
+    else
+      logline "WARN $name retry-merge-failed"
+    fi
+  fi
+  if [ "$DRY" -eq 1 ] && [ -f "$marker" ]; then
+    say "[diff] $name: pending DB merge retry (marker present)"
+  fi
 
   # Refresh the local export from the live DB (skip in dry-run: read-only).
   if [ "$DRY" -eq 0 ] && [ -f "$db" ]; then
@@ -252,9 +276,12 @@ sync_one() {
       if ( cd "$repo" && "$BR" sync --merge --force >/dev/null 2>&1 ); then
         say "[pull] $name: $foreign foreign bead-state(s) merged into local DB"
         logline "IMPORT $name foreign=$foreign"
+        rm -f "$marker"
       else
-        echo "[warn] $name: br sync --merge failed — local DB lags the ledger until the next sync" >&2
-        logline "WARN $name br-merge-failed"
+        mkdir -p "$RETRY_DIR"
+        date '+%F %T' > "$marker" 2>/dev/null
+        echo "[warn] $name: br sync --merge failed — will retry at next sync (marker set)" >&2
+        logline "WARN $name br-merge-failed marker-set"
       fi
     fi
   fi

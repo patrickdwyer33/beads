@@ -21,12 +21,23 @@ REAL_BR="$(command -v br)"
 # logical and physical path forms mix (same quirk the sync script works
 # around by running its merge with cwd in the repo).
 T=$(cd "$(mktemp -d)" && pwd -P) || exit 1
-trap 'rm -rf "$T"' EXIT INT TERM
+trap 'rm -rf "$T"; rm -f "$HOME/.claude/beads-orc-retry/proj"' EXIT INT TERM
 
-# br shim: log argv, delegate to the real binary.
+# br shim: log argv, delegate to the real binary. If $T/fail-next-merge
+# exists AND this invocation is a `sync --merge` (Case I: simulates a merge
+# failure, e.g. a SQLite lock from a concurrent session), consume the file
+# and exit 1 WITHOUT delegating — the real DB is left untouched.
 cat > "$T/brshim" <<EOF
 #!/bin/sh
 echo "\$@" >> "$T/br-calls.log"
+case " \$* " in
+  *" sync --merge "*)
+    if [ -f "$T/fail-next-merge" ]; then
+      rm -f "$T/fail-next-merge"
+      exit 1
+    fi
+    ;;
+esac
 exec "$REAL_BR" "\$@"
 EOF
 chmod +x "$T/brshim"
@@ -227,6 +238,37 @@ out=$(sh "$SYNC" nested 2>&1)
 if printf '%s' "$out" | grep -q "in sync"; then
   ok "named-arg group fallback resolves 'nested' to group/nested"
 else bad "named-arg group fallback resolves 'nested' to group/nested" "$out"; fi
+
+# I. WARN-path retry marker: a foreign-path `br sync --merge --force` failure
+# (e.g. a SQLite lock from a concurrent session) must persist a machine-local
+# marker and retry the DB merge on the NEXT sync — otherwise the subsequent
+# push makes local ledger == origin's, FOREIGN drops to 0, and the DB stays
+# wedged behind the ledger forever. NOTE: this mutates the real
+# $HOME/.claude/beads-orc-retry/ (machine-local scratch, by design) — clean
+# up after ourselves (also covered by the trap).
+MARKER="$HOME/.claude/beads-orc-retry/proj"
+rm -f "$MARKER"
+reset_brlog
+touch "$T/fail-next-merge"
+plant_foreign "WEDGE-TEST"
+out=$(sh "$SYNC" "$PROJ" 2>&1)
+title_now=$("$REAL_BR" show "$ID1" --db "$PROJ/.beads/beads.db" --json 2>/dev/null | jq -r '.[0].title')
+if printf '%s' "$out" | grep -q "will retry" \
+   && [ -f "$MARKER" ] \
+   && [ "$title_now" != "WEDGE-TEST" ]; then
+  ok "WARN-path merge failure sets retry marker, DB not clobbered"
+else bad "WARN-path merge failure sets retry marker, DB not clobbered" \
+  "$out / marker=$([ -f "$MARKER" ] && echo present || echo absent) / title=$title_now"; fi
+
+out=$(sh "$SYNC" "$PROJ" 2>&1)
+title_now=$("$REAL_BR" show "$ID1" --db "$PROJ/.beads/beads.db" --json 2>/dev/null | jq -r '.[0].title')
+if printf '%s' "$out" | grep -qF "[heal]" \
+   && [ ! -f "$MARKER" ] \
+   && [ "$title_now" = "WEDGE-TEST" ]; then
+  ok "retry marker heals DB merge on next sync"
+else bad "retry marker heals DB merge on next sync" \
+  "$out / marker=$([ -f "$MARKER" ] && echo present || echo absent) / title=$title_now"; fi
+rm -f "$MARKER" "$T/fail-next-merge"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

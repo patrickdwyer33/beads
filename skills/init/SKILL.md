@@ -6,9 +6,8 @@ description: Use when opting a repo under ~/dev into beads-orc issue tracking. C
 # Initialize beads-orc in a repo
 
 Run from inside the target repo (must be a git repo under ~/dev — directly,
-or one group level down (~/dev/<group>/<repo>). Never beads-init a group
-folder itself, and keep repo folder names unique across groups (the
-directory name becomes the bead id prefix)). The repo's
+or one group level down at ~/dev/<group>/<repo>). Never beads-init a group
+folder itself; keep repo folder names unique across groups. The repo's
 DIRECTORY NAME becomes the bead id prefix — confirm with the user if the name
 looks wrong (renaming later breaks routing).
 
@@ -46,18 +45,18 @@ looks wrong (renaming later breaks routing).
    # main: PR-only (blocks direct pushes for everyone incl. the agent
    # machine account); repo admin (the human) can bypass.
    gh api "repos/$OWNER_REPO/rulesets" -X POST --input - <<'JSON' || echo "rulesets unavailable (private/free) — documented policy only"
-   {"name":"beads-orc main policy","target":"branch","enforcement":"active",
-    "conditions":{"ref_name":{"include":["refs/heads/main"],"exclude":[]}},
-    "rules":[{"type":"pull_request","parameters":{"required_approving_review_count":0,"dismiss_stale_reviews_on_push":false,"require_code_owner_review":false,"require_last_push_approval":false,"required_review_thread_resolution":false}},{"type":"non_fast_forward"},{"type":"deletion"}],
-    "bypass_actors":[{"actor_id":5,"actor_type":"RepositoryRole","bypass_mode":"always"}]}
-   JSON
+{"name":"beads-orc main policy","target":"branch","enforcement":"active",
+"conditions":{"ref_name":{"include":["refs/heads/main"],"exclude":[]}},
+"rules":[{"type":"pull_request","parameters":{"required_approving_review_count":0,"dismiss_stale_reviews_on_push":false,"require_code_owner_review":false,"require_last_push_approval":false,"required_review_thread_resolution":false}},{"type":"non_fast_forward"},{"type":"deletion"}],
+"bypass_actors":[{"actor_id":5,"actor_type":"RepositoryRole","bypass_mode":"always"}]}
+JSON
    # dev: no history rewrites, no deletion (normal pushes unaffected).
    gh api "repos/$OWNER_REPO/rulesets" -X POST --input - <<'JSON' || true
-   {"name":"beads-orc dev policy","target":"branch","enforcement":"active",
-    "conditions":{"ref_name":{"include":["refs/heads/dev"],"exclude":[]}},
-    "rules":[{"type":"non_fast_forward"},{"type":"deletion"}],
-    "bypass_actors":[]}
-   JSON
+{"name":"beads-orc dev policy","target":"branch","enforcement":"active",
+"conditions":{"ref_name":{"include":["refs/heads/dev"],"exclude":[]}},
+"rules":[{"type":"non_fast_forward"},{"type":"deletion"}],
+"bypass_actors":[]}
+JSON
    ```
 
 6. Document the workflow in the repo. Append to the repo's CLAUDE.md (create

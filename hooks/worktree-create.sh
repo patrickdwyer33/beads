@@ -76,7 +76,7 @@ case "$name" in
     ;;
 esac
 [ -d "$repo_dir/.git" ] || git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1 \
-  || fail "\"$repo\" is not a git repo under $DEV_ROOT. Valid repos: $(ls -d "$DEV_ROOT"/*/.git 2>/dev/null | sed 's@/.git@@;s@.*/@@' | tr '\n' ' ')"
+  || fail "\"$repo\" is not a git repo under $DEV_ROOT. Valid repos: $(ls -d "$DEV_ROOT"/*/.git "$DEV_ROOT"/*/*/.git 2>/dev/null | sed 's@/.git@@;s@.*/@@' | tr '\n' ' ')"
 
 # Directory name: flatten any slashes in the branch portion so we get one dir.
 dir_name=$(printf '%s' "$branch" | tr '/' '-')
