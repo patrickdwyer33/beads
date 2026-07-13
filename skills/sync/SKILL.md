@@ -30,6 +30,10 @@ Notes:
 - The push is a ledger-data commit on `dev`. NEVER push main.
 - The local `dev` BRANCH ref is not moved by the sync (it pushes a plumbing
   commit to origin). To bring a checked-out dev current:
-  `git pull --ff-only origin dev`.
+  `git pull --ff-only origin dev`. If the pull refuses because
+  `.beads/issues.jsonl` is locally modified, that's the flushed copy of what
+  the sync already pushed — confirm with
+  `git fetch origin dev && git diff origin/dev -- .beads/issues.jsonl`
+  (expect empty) and discard it: `git checkout -- .beads/issues.jsonl`.
 - A repo is skipped (logged) when it has no `origin/dev` — run beads-orc:init
   fully (it pushes dev) to make a repo syncable.
