@@ -139,7 +139,7 @@ canonical="$repo_dir/.beads"
 if [ -d "$canonical" ]; then
   mkdir -p "$wt_path/.beads" 2>/dev/null && {
     [ -f "$wt_path/.beads/.gitignore" ] || \
-      printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' '.br_history/' > "$wt_path/.beads/.gitignore" 2>/dev/null
+      printf '%s\n' '*.db' '*.db-*' '*.lock' 'redirect' 'last-touched' 'beads.base.jsonl' '.br_history/' > "$wt_path/.beads/.gitignore" 2>/dev/null
     printf '%s\n' "$canonical" > "$wt_path/.beads/redirect" 2>/dev/null
   }
 fi

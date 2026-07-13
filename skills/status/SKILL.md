@@ -9,7 +9,8 @@ Scope rule: if the cwd is inside a beads-inited repo (`git rev-parse
 --show-toplevel` succeeds and `<toplevel>/.beads` exists — a worktree counts,
 its `.beads` redirect is still a `.beads`), report THAT repo only. Otherwise
 (e.g. `~/dev`, or a repo that isn't beads-inited), report every beads-inited
-repo under ~/dev (dirs containing `.beads/`) and say which scope you used.
+repo under ~/dev (dirs containing `.beads/`, directly under ~/dev or one
+group level down) and say which scope you used.
 The user can always name a repo or say "all" to override.
 
 Per repo in scope:

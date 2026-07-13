@@ -51,7 +51,7 @@ fi
 
 echo '## Beads — cross-repo backlog digest (beads-orc)'
 echo 'CLAIM BEFORE YOU WORK with `bd`, NOT `br`: `bd update <id> --claim` is atomic (assignee + status=in_progress) and drops the bead from every other agent'\''s ready list. `bd` ROUTES a fully-qualified id (e.g. `taher-core-scope-8cda`) to its home repo'\''s DB from ANY cwd and stamps a SESSION-DISTINCT, USER-ATTRIBUTED actor (`<branch>-<username>`, or just `<username>` outside a repo), so the assignee shows whose session holds each claim. Bare `br` only sees the cwd'\''s DB. ▸ ready = safe to claim. 🔒 in-flight = already claimed (assignee shown) — do NOT pick.'
-echo 'BRANCH POLICY (beads-inited repos): work on a feature branch in a worktree → push to `dev` (review-gated) → a HUMAN promotes dev → main (prod). NEVER push main yourself in a beads repo.'
+echo 'BRANCH POLICY (beads-inited repos): work on a feature branch in a worktree → review the diff with a fresh subagent → push to `dev` → a HUMAN promotes dev → main (prod). NEVER push or merge to main yourself in a beads repo.'
 echo 'AFTER YOU CLAIM, do the work IN THIS SESSION — NEVER tell the user to open a new terminal or session. Step into an isolated worktree with the **EnterWorktree** tool: from ~/dev use the repo-prefixed name, e.g. `EnterWorktree(name: "taher-core/my-branch")`; already inside a repo session use `EnterWorktree(name: "<branch>")`. NOTE: EnterWorktree/ExitWorktree are DEFERRED tools — FIRST run `ToolSearch(query: "select:EnterWorktree,ExitWorktree")` to load them, THEN call.'
 
 for p in $REPO_DIRS; do
